@@ -110,5 +110,4 @@ systemctl disable --now quickworks-update.timer 2>/dev/null || true
 rm -f /etc/systemd/system/quickworks-update.service
 rm -f /etc/systemd/system/quickworks-update.timer
 systemctl daemon-reload
-systemctl enable quickworks-agent.service
-systemctl try-restart quickworks-agent.service || systemctl start quickworks-agent.service
+systemctl enable --now quickworks-agent.service
