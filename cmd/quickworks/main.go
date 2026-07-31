@@ -10,11 +10,16 @@ import (
 	"syscall"
 
 	"github.com/evanxiao/quickworks/internal/app"
+	"github.com/evanxiao/quickworks/internal/buildinfo"
 )
 
 func main() {
 	if len(os.Args) < 2 {
-		fatal(errors.New("usage: quickworks <server|provisioner|agent> --config PATH"))
+		fatal(errors.New("usage: quickworks <server|provisioner|agent|version> --config PATH"))
+	}
+	if os.Args[1] == "version" {
+		fmt.Println(buildinfo.String())
+		return
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

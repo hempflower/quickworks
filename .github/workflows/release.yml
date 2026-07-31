@@ -34,9 +34,13 @@ jobs:
       - name: Build Linux amd64 release archive
         run: |
           mkdir -p dist
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags='-s -w' -o dist/quickworks ./cmd/quickworks
-          tar -C dist -czf dist/quickworks-linux-amd64.tar.gz quickworks
-          sha256sum dist/quickworks-linux-amd64.tar.gz > dist/quickworks-linux-amd64.tar.gz.sha256
+          VERSION="${GITHUB_REF_NAME}"
+          BUILD_DATE="$(date --utc +%Y-%m-%dT%H:%M:%SZ)"
+          LDFLAGS="-s -w -X github.com/evanxiao/quickworks/internal/buildinfo.Version=${VERSION} -X github.com/evanxiao/quickworks/internal/buildinfo.Commit=${GITHUB_SHA} -X github.com/evanxiao/quickworks/internal/buildinfo.BuildDate=${BUILD_DATE}"
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="$LDFLAGS" -o dist/quickworks ./cmd/quickworks
+          ARCHIVE="quickworks-${VERSION}-linux-amd64.tar.gz"
+          tar -C dist -czf "dist/${ARCHIVE}" quickworks
+          sha256sum "dist/${ARCHIVE}" > "dist/${ARCHIVE}.sha256"
 
       - name: Create draft release
         uses: softprops/action-gh-release@v2
@@ -44,5 +48,5 @@ jobs:
           draft: true
           generate_release_notes: true
           files: |
-            dist/quickworks-linux-amd64.tar.gz
-            dist/quickworks-linux-amd64.tar.gz.sha256
+            dist/*.tar.gz
+            dist/*.tar.gz.sha256
