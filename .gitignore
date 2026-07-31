@@ -1,0 +1,27 @@
+.secrets/
+.env
+.env.*
+!.env.example
+config.yaml
+config.provisioner.yaml
+.quickworks-state/
+.quickworks-state-backups/
+quickworks.db
+quickworks.db-shm
+quickworks.db-wal
+scratch_*.go
+web/node_modules/
+npm-debug.log*
+
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+*.tfvars.json
+crash.log
+crash.*.log
+
+# Local Go build output.
+/quickworks
+quickworks

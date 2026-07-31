@@ -1,0 +1,14 @@
+#!/bin/sh
+set -eu
+
+export QUICKWORKS_AGENT_CONTROL_URL={{ shellquote .ControlPlaneURL }}
+export QUICKWORKS_AGENT_ID={{ shellquote .AgentID }}
+export QUICKWORKS_AGENT_ENROLLMENT_TOKEN={{ shellquote .EnrollmentToken }}
+export QUICKWORKS_REPOSITORY_URL={{ shellquote .RepositoryURL }}
+export QUICKWORKS_BASE_PATH={{ shellquote .BasePath }}
+
+curl --fail --silent --show-error --location \
+  "$QUICKWORKS_AGENT_CONTROL_URL/assets/workspace-bootstrap.sh" \
+  --output /run/quickworks-bootstrap
+chmod 0700 /run/quickworks-bootstrap
+exec /run/quickworks-bootstrap

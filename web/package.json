@@ -1,0 +1,15 @@
+{
+  "private": true,
+  "scripts": {
+    "build": "npx @tailwindcss/cli -i ./src/styles.css -o ./static/app.css --minify && npx esbuild ./src/workspace-status.js --bundle --minify --outdir=./static",
+    "watch": "npx @tailwindcss/cli -i ./src/styles.css -o ./static/app.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "4.3.3",
+    "tailwindcss": "4.3.3"
+  },
+  "dependencies": {
+    "@xterm/xterm": "^5.5.0",
+    "esbuild": "^0.25.10"
+  }
+}

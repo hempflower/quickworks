@@ -1,0 +1,50 @@
+server:
+  public_url: http://localhost:8082
+  listen: 127.0.0.1:8082
+  secret_key_file: .secrets/quickworks-server-key
+
+provisioners:
+  - worker_id: provisioner-1
+    token_file: .secrets/quickworks-provisioner-token
+
+templates:
+  default: incus-vm-v1
+  items:
+    - name: incus-vm-v1
+      required_labels:
+        - home
+      resources:
+        cpus: 2
+        memory_gib: 4
+        disk_gib: 20
+        estimated_cost: 0
+
+quotas:
+  default:
+    max_workspaces: 5
+    max_running_workspaces: 3
+  templates:
+    incus-vm-v1:
+      max_workspaces: 10
+      max_running_workspaces: 4
+
+workbench:
+  version: 4.131.1
+  bundle_url: https://github.com/hempflower/vscode-agents-server/releases/download/v4.131.1/vscode-agents-server-4.131.1-linux-amd64.tar.gz
+  bundle_sha256: 7a70cd61c4d95181931f2561973f7a2f5f05e49cff890eac5a81d04d7206d12e
+  entrypoint: bin/vscode-agents-server
+  byok_config_file: workbench-byok.json
+  env_file: .secrets/workbench.env
+
+auth:
+  github:
+    client_id: Ov23lirP7GjgRF44SY7o
+    client_secret_file: .secrets/github-oauth-client-secret
+    allowed_user_ids:
+      - 22955496
+
+database:
+  path: /var/lib/quickworks/quickworks.db
+
+lifecycle:
+  auto_stop_after: 8h

@@ -1,0 +1,15 @@
+provisioner:
+  control_url: http://localhost:8082
+  worker_id: provisioner-1
+  token_file: .secrets/quickworks-provisioner-token
+  binary: terraform
+  labels:
+    - home
+    - larger
+  capacity: 2
+  template_dirs:
+    incus-vm-v1: templates/incus-vm-v1
+  state_dir: /var/lib/quickworks/state
+  state_backend: local
+  state_backup_dir: /var/lib/quickworks/state-backups
+  state_backup_retention: 14
