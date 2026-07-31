@@ -124,9 +124,10 @@ func (r *Router) Reconcile(ctx context.Context) {
 	ticker := time.NewTicker(15 * time.Second)
 	defer ticker.Stop()
 	for {
-		_ = r.agents.MarkStale(ctx, time.Now().Add(-45*time.Second))
+		now := time.Now().UTC()
+		_ = r.agents.MarkStale(ctx, now.Add(-45*time.Second))
 		if r.autoStopAfter > 0 {
-			_ = r.workspaces.StopIdle(ctx, time.Now().Add(-r.autoStopAfter))
+			_ = r.workspaces.StopIdle(ctx, now.Add(-r.autoStopAfter))
 		}
 		select {
 		case <-ctx.Done():

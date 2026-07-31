@@ -333,6 +333,7 @@ Incus `.tf` 不假定 cloud-init，也不内嵌安装逻辑，只声明通用的
 - Location 和必要 Cookie Path 重写。
 - 工作台未就绪时返回启动页，而不是裸 `502`。
 - 每个工作区的并发连接上限、请求体上限和 idle timeout。
+- Workspace activity timestamps use UTC for storage and comparison, ensuring lifecycle auto-stop remains correct on non-UTC control-plane hosts.
 - 客户端断开时向 agent 发送 stream close，并正确传播 backpressure 与半关闭。
 
 路径模式要求上游工作台支持 base path，例如 `WORKBENCH_BASE_PATH=/w/{id}`。若上游使用绝对 `/static/...` URL、固定根路径 Cookie、Service Worker 或严格 CSP，通用路径重写会很脆弱，应改用 `https://{id}.w.example.com/`。

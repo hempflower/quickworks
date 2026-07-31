@@ -193,7 +193,8 @@ func createInTx(tx *gorm.DB, ownerID int64, name, templateName string, repositor
 	if err != nil {
 		return Workspace{}, Build{}, err
 	}
-	ws := Workspace{ID: id, OwnerID: ownerID, SourceType: "empty", TemplateName: templateName, DesiredState: "running", ObservedState: "pending", StateKey: "workspaces/" + id + "/terraform.tfstate"}
+	now := time.Now().UTC()
+	ws := Workspace{ID: id, OwnerID: ownerID, SourceType: "empty", TemplateName: templateName, DesiredState: "running", ObservedState: "pending", StateKey: "workspaces/" + id + "/terraform.tfstate", LastAccessAt: now}
 	if repository != nil {
 		if repository.ID < 1 || repository.FullName == "" {
 			return Workspace{}, Build{}, errors.New("repository metadata is invalid")
@@ -243,7 +244,8 @@ func (s *Service) OwnsBuild(ctx context.Context, ownerID int64, buildID string) 
 }
 
 func (s *Service) Touch(ctx context.Context, ownerID int64, id string) error {
-	result := s.db.WithContext(ctx).Exec("UPDATE workspaces SET last_access_at = ?, updated_at = ? WHERE id = ? AND owner_id = ? AND deleted_at IS NULL", time.Now(), time.Now(), id, ownerID)
+	now := time.Now().UTC()
+	result := s.db.WithContext(ctx).Exec("UPDATE workspaces SET last_access_at = ?, updated_at = ? WHERE id = ? AND owner_id = ? AND deleted_at IS NULL", now, now, id, ownerID)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -254,6 +256,7 @@ func (s *Service) Touch(ctx context.Context, ownerID int64, id string) error {
 }
 
 func (s *Service) StopIdle(ctx context.Context, before time.Time) error {
+	before = before.UTC()
 	var candidates []struct {
 		ID      string
 		OwnerID int64
@@ -304,7 +307,12 @@ func (s *Service) Transition(ctx context.Context, ownerID int64, id, transition 
 		if active > 0 {
 			return errors.New("workspace already has an active build")
 		}
-		if err := tx.Model(&Workspace{}).Where("id = ?", id).Updates(map[string]any{"desired_state": desired, "observed_state": observed, "updated_at": time.Now()}).Error; err != nil {
+		now := time.Now().UTC()
+		updates := map[string]any{"desired_state": desired, "observed_state": observed, "updated_at": now}
+		if transition == "start" {
+			updates["last_access_at"] = now
+		}
+		if err := tx.Model(&Workspace{}).Where("id = ?", id).Updates(updates).Error; err != nil {
 			return err
 		}
 		var sequence int

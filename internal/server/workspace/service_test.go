@@ -139,10 +139,10 @@ func TestCreateRepositoryWorkspaceStoresCanonicalRepository(t *testing.T) {
 
 func TestStopIdleQueuesStopBuild(t *testing.T) {
 	s := New(testDB(t))
-	if err := s.db.Exec("INSERT INTO workspaces(id, owner_id, source_type, desired_state, observed_state, state_key, template_name, last_access_at) VALUES ('calm-blue-harbor', 1, 'empty', 'running', 'running', 'state', 'incus-vm-v1', ?)", time.Now().Add(-9*time.Hour)).Error; err != nil {
+	if err := s.db.Exec("INSERT INTO workspaces(id, owner_id, source_type, desired_state, observed_state, state_key, template_name, last_access_at) VALUES ('calm-blue-harbor', 1, 'empty', 'running', 'running', 'state', 'incus-vm-v1', ?)", time.Now().UTC().Add(-9*time.Hour)).Error; err != nil {
 		t.Fatal(err)
 	}
-	if err := s.StopIdle(context.Background(), time.Now().Add(-8*time.Hour)); err != nil {
+	if err := s.StopIdle(context.Background(), time.Now().UTC().Add(-8*time.Hour)); err != nil {
 		t.Fatal(err)
 	}
 	var build Build
@@ -151,6 +151,39 @@ func TestStopIdleQueuesStopBuild(t *testing.T) {
 	}
 	if build.Transition != "stop" || build.Status != "queued" {
 		t.Fatalf("unexpected idle stop build: %#v", build)
+	}
+}
+
+func TestNewWorkspaceIsNotIdleInNonUTCTimeZone(t *testing.T) {
+	originalLocal := time.Local
+	t.Setenv("TZ", "Asia/Shanghai")
+	location, err := time.LoadLocation("Asia/Shanghai")
+	if err != nil {
+		t.Fatal(err)
+	}
+	time.Local = location
+	t.Cleanup(func() { time.Local = originalLocal })
+
+	s := New(testDB(t))
+	workspace, _, err := s.Create(context.Background(), 1, "new workspace", "incus-vm-v1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.db.Model(&Build{}).Where("workspace_id = ?", workspace.ID).Update("status", "succeeded").Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := s.db.Model(&Workspace{}).Where("id = ?", workspace.ID).Update("observed_state", "running").Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := s.StopIdle(context.Background(), time.Now().UTC().Add(-8*time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	var builds []Build
+	if err := s.db.Where("workspace_id = ?", workspace.ID).Order("sequence").Find(&builds).Error; err != nil {
+		t.Fatal(err)
+	}
+	if len(builds) != 1 || builds[0].Transition != "start" {
+		t.Fatalf("new workspace was incorrectly considered idle: %#v", builds)
 	}
 }
 
