@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/evanxiao/quickworks/internal/agent"
 )
@@ -61,9 +62,16 @@ func RunAgent(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	runCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	executable, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("locate agent executable: %w", err)
+	}
 	go func() {
-		_ = agent.MaintainTunnel(ctx, controlURL, registered.AgentID, registered.Session)
+		_ = agent.MaintainTunnel(runCtx, controlURL, registered.AgentID, registered.Session)
 	}()
+	var startUpdate sync.Once
 	return agent.WorkbenchConfig{
 		Entrypoint:     entrypoint,
 		EnvFile:        envPath,
@@ -73,8 +81,14 @@ func RunAgent(ctx context.Context) error {
 		Group:          workbenchGroup,
 		BasePath:       "/w/" + registered.WorkspaceID + "/",
 		HealthURL:      environmentOrDefault("QUICKWORKS_AGENT_HEALTH_URL", "http://127.0.0.1:3000/healthz"),
-	}.RunWithRestart(ctx, func() error {
-		return agent.ReportReady(ctx, controlURL, registered.AgentID, registered.Session)
+	}.RunWithRestart(runCtx, func() error {
+		if err := agent.ReportReady(runCtx, controlURL, registered.AgentID, registered.Session); err != nil {
+			return err
+		}
+		startUpdate.Do(func() {
+			go agent.MaintainSelfUpdate(runCtx, controlURL, stateDir, executable, cancel)
+		})
+		return nil
 	}, func(error) {})
 }
 

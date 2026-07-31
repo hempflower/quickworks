@@ -53,8 +53,8 @@ resource "incus_instance" "workspace" {
   profiles  = ["default"]
 
   config = {
-    "limits.cpu"          = "2"
-    "limits.memory"       = "4GiB"
+    "limits.cpu"          = "8"
+    "limits.memory"       = "16GiB"
     "security.secureboot" = "false"
   }
 

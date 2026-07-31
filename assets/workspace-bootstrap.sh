@@ -23,6 +23,30 @@ chmod 0755 /var/lib/quickworks-agent/workbench/versions
 install -d -m 0755 -o root -g root /etc/quickworks
 install -d -m 0750 -o workspace -g workspace /home/workspace
 install -d -m 0750 -o workspace -g workspace /workspace
+
+# Keep the workspace usable on the minimal cloud image. The marker makes this
+# one-time bootstrap step idempotent when an administrator reruns it.
+if [ ! -f /var/lib/quickworks-agent/.base-tools-v1 ]; then
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get -o Acquire::Retries=3 update
+  apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    git \
+    sudo \
+    jq \
+    unzip \
+    zip \
+    ripgrep \
+    fd-find \
+    less \
+    nano \
+    tmux \
+    build-essential \
+    pkg-config
+  touch /var/lib/quickworks-agent/.base-tools-v1
+fi
+
 runuser -u workspace -- git config --global credential.helper store
 runuser -u workspace -- git config --global credential.useHttpPath true
 install -d -m 0750 -o root -g root /etc/sudoers.d
@@ -79,32 +103,12 @@ UMask=0077
 WantedBy=multi-user.target
 EOF
 
-cat >/etc/systemd/system/quickworks-update.service <<'EOF'
-[Unit]
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-Type=oneshot
-EnvironmentFile=/etc/quickworks/agent.env
-ExecStart=/bin/sh -c 'curl --fail --silent --show-error --location "$QUICKWORKS_AGENT_CONTROL_URL/assets/workspace-bootstrap.sh" --output /usr/local/bin/quickworks-bootstrap && chmod 0700 /usr/local/bin/quickworks-bootstrap && /usr/local/bin/quickworks-bootstrap'
-EOF
-
-cat >/etc/systemd/system/quickworks-update.timer <<'EOF'
-[Timer]
-OnBootSec=5min
-OnUnitActiveSec=15min
-RandomizedDelaySec=2min
-Persistent=true
-
-[Install]
-WantedBy=timers.target
-EOF
-
 systemctl daemon-reload
 systemctl disable --now quickworks-workbench.service 2>/dev/null || true
 rm -f /etc/systemd/system/quickworks-workbench.service
+systemctl disable --now quickworks-update.timer 2>/dev/null || true
+rm -f /etc/systemd/system/quickworks-update.service
+rm -f /etc/systemd/system/quickworks-update.timer
 systemctl daemon-reload
 systemctl enable quickworks-agent.service
-systemctl enable --now quickworks-update.timer
 systemctl try-restart quickworks-agent.service || systemctl start quickworks-agent.service

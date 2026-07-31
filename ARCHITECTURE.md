@@ -259,7 +259,7 @@ agent 负责：
 - 将控制面下发的 HTTP/WebSocket 流量转发到本地工作台，例如 `http://127.0.0.1:3000`。
 - 上报结构化启动日志和工作台不可用原因；不采集仓库文件内容或任意进程环境。
 - 收到 drain 命令后停止接受新隧道，等待活动连接结束，供 stop/delete 使用。
-- 根据控制面下发的版本策略更新 Workbench bundle；Quickworks 自身仍由 bootstrap timer 更新。
+- 根据控制面下发的版本策略更新 Workbench bundle。Workspace bootstrap 只负责一次性系统初始化，不承担更新职责；agent 在 Workbench 就绪后每 15 分钟检查控制面发布的 Quickworks agent bundle 摘要，下载并校验变化的归档，以原子替换自身二进制后退出，由 systemd 重启。
 
 Agent 注册响应必须携带 `workbench_bundle_url`、`workbench_bundle_sha256`、`workbench_version` 和 `workbench_entrypoint`。Agent 仅接受 HTTPS URL，通过临时文件下载并限制响应大小，校验控制面在认证响应中给出的 SHA-256 后，再解包到 `/var/lib/quickworks-agent/workbench/versions/{sha256}/`。任一字段缺失、下载失败或摘要不匹配时，agent 上报 degraded 并保持连接，不启动旧版本或未知 Workbench。
 
@@ -317,7 +317,7 @@ Incus `.tf` 不假定 cloud-init，也不内嵌安装逻辑，只声明通用的
 2. bootstrap 脚本无认证下载 `/assets/quickworks-linux-amd64.tar.gz` 和对应 `.sha256` 文件。
 3. bootstrap 校验 SHA-256，安装单个 `quickworks`，写入 agent systemd unit 并启动 agent。
 4. enrollment token 仅供 agent 注册 `/api/agent/connect` 使用，不参与静态资源下载；开发环境允许再次使用以恢复 agent。
-5. `quickworks-update.timer` 每 15 分钟重新下载 bootstrap 脚本和最新 Quickworks bundle，校验摘要后原子覆盖二进制并重启 agent。Workbench 更新由 agent 根据注册响应中的独立版本、URL 和摘要执行。
+5. workspace 内没有 bootstrap 更新 timer。Workbench 更新由 agent 根据注册响应中的独立版本、URL 和摘要执行。agent 就绪后每 15 分钟读取 Quickworks agent bundle 摘要，只有摘要变化才下载、校验并原子替换自身二进制，随后由 systemd 重启并重新注册；更新失败保留原二进制。
 
 这是内部部署的简化模型：静态脚本、校验文件和二进制 bundle 均无需认证。控制面应保证静态资源只发布与自身协议兼容的版本；SHA-256 用于发现下载损坏，不作为发布方身份认证。
 
