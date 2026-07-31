@@ -41,8 +41,8 @@ when required secret files are missing.
 
 ```sh
 go mod download
-CGO_ENABLED=0 go test ./...
-CGO_ENABLED=0 go build ./cmd/quickworks
+make test
+make build
 ./quickworks server --config config.yaml
 ```
 

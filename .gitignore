@@ -10,7 +10,9 @@ quickworks.db
 quickworks.db-shm
 quickworks.db-wal
 scratch_*.go
+dist/
 web/node_modules/
+web/static/
 npm-debug.log*
 
 **/.terraform/

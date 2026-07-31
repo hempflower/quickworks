@@ -1,6 +1,7 @@
 .PHONY: test build fmt ui-install ui-build ui-watch ui-check
 
 test:
+	$(MAKE) ui-build
 	CGO_ENABLED=0 go test ./...
 
 build:
