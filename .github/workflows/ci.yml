@@ -1,11 +1,9 @@
-name: Build and Release
+name: CI
 
 on:
   push:
     branches:
       - "**"
-    tags:
-      - "v*"
   pull_request:
 
 permissions:
@@ -37,7 +35,7 @@ jobs:
       - name: Test
         run: CGO_ENABLED=0 go test ./...
 
-      - name: Build Linux amd64 release archive
+      - name: Build Linux amd64 archive
         run: |
           mkdir -p dist
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags='-s -w' -o dist/quickworks ./cmd/quickworks
@@ -52,24 +50,3 @@ jobs:
             dist/quickworks-linux-amd64.tar.gz
             dist/quickworks-linux-amd64.tar.gz.sha256
           if-no-files-found: error
-
-  draft-release:
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: quickworks-linux-amd64
-          path: dist
-
-      - name: Create draft release
-        uses: softprops/action-gh-release@v2
-        with:
-          draft: true
-          generate_release_notes: true
-          files: |
-            dist/quickworks-linux-amd64.tar.gz
-            dist/quickworks-linux-amd64.tar.gz.sha256
