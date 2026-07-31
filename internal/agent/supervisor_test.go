@@ -1,6 +1,8 @@
 package agent
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestMergeEnvironmentOverridesWithoutDuplicates(t *testing.T) {
 	merged := mergeEnvironment([]string{"A=one", "B=two"}, map[string]string{"A": "replacement", "C": "three"}, "D=four")
@@ -14,6 +16,16 @@ func TestMergeEnvironmentOverridesWithoutDuplicates(t *testing.T) {
 	}
 	if values["A"] != "replacement" || values["B"] != "two" || values["C"] != "three" || values["D"] != "four" {
 		t.Fatalf("unexpected environment: %#v", values)
+	}
+}
+
+func TestWorkbenchStateDirUsesUserHome(t *testing.T) {
+	path, err := workbenchStateDir("/home/workspace")
+	if err != nil || path != "/home/workspace/.quickworks" {
+		t.Fatalf("unexpected workbench state directory: %q, %v", path, err)
+	}
+	if _, err := workbenchStateDir("workspace"); err == nil {
+		t.Fatal("expected relative home directory to be rejected")
 	}
 }
 

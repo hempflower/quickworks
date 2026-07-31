@@ -68,7 +68,11 @@ func (c WorkbenchConfig) Command(ctx context.Context) (*exec.Cmd, error) {
 	if err := os.Chmod(filepath.Dir(c.BYOKConfigFile), 0710); err != nil {
 		return nil, fmt.Errorf("set workbench configuration directory permissions: %w", err)
 	}
-	if err := writeWorkbenchSettings(c.WorkspaceDir, int(uid), int(gid)); err != nil {
+	stateDir, err := workbenchStateDir(account.HomeDir)
+	if err != nil {
+		return nil, err
+	}
+	if err := writeWorkbenchSettings(stateDir, int(uid), int(gid)); err != nil {
 		return nil, err
 	}
 	basePath := c.BasePath
@@ -83,8 +87,8 @@ func (c WorkbenchConfig) Command(ctx context.Context) (*exec.Cmd, error) {
 		"--bind-addr", "127.0.0.1:3000",
 		"--disable-update-check",
 		"--agents-byok-config", c.BYOKConfigFile,
-		"--user-data-dir", filepath.Join(c.WorkspaceDir, ".quickworks", "user-data"),
-		"--extensions-dir", filepath.Join(c.WorkspaceDir, ".quickworks", "extensions"),
+		"--user-data-dir", filepath.Join(stateDir, "user-data"),
+		"--extensions-dir", filepath.Join(stateDir, "extensions"),
 		c.WorkspaceDir,
 	}
 	values["HOME"] = account.HomeDir
@@ -109,11 +113,18 @@ func (c WorkbenchConfig) Command(ctx context.Context) (*exec.Cmd, error) {
 // default for both agent work and internal utility requests. Without this, VS
 // Code defaults utility requests to GitHub Copilot, which is unavailable in a
 // BYOK-only workbench.
-func writeWorkbenchSettings(workspaceDir string, uid, gid int) error {
+func workbenchStateDir(homeDir string) (string, error) {
+	if !filepath.IsAbs(homeDir) {
+		return "", errors.New("workbench user home directory must be absolute")
+	}
+	return filepath.Join(homeDir, ".quickworks"), nil
+}
+
+func writeWorkbenchSettings(stateDir string, uid, gid int) error {
 	stateDirs := []string{
-		filepath.Join(workspaceDir, ".quickworks"),
-		filepath.Join(workspaceDir, ".quickworks", "user-data"),
-		filepath.Join(workspaceDir, ".quickworks", "user-data", "User"),
+		stateDir,
+		filepath.Join(stateDir, "user-data"),
+		filepath.Join(stateDir, "user-data", "User"),
 	}
 	for _, directory := range stateDirs {
 		if err := os.MkdirAll(directory, 0750); err != nil {

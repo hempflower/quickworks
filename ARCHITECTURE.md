@@ -284,8 +284,8 @@ bin/vscode-agents-server \
   --bind-addr 127.0.0.1:3000 \
   --disable-update-check \
   --agents-byok-config /etc/quickworks/workbench/byok.json \
-  --user-data-dir /workspace/.quickworks/user-data \
-  --extensions-dir /workspace/.quickworks/extensions \
+  --user-data-dir /home/workspace/.quickworks/user-data \
+  --extensions-dir /home/workspace/.quickworks/extensions \
   /workspace
 ```
 
